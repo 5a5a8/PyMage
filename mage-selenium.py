@@ -1,5 +1,6 @@
 import unittest
 import time
+import requests
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -17,6 +18,29 @@ class GlobalVariable:
 	last_name = "mapmap"
 	product_url = site_url + "fusion-backpack.html"
 	cart_url = site_url + "checkout/cart"
+	coupon_invalid = "invalidcoupon50"
+	coupon_valid = "AUTO_TEST_COUPON"
+
+
+class Utilities:
+	def wait_for_js(driver):
+		done = driver.execute_script("return document.readyState")
+		if str(done) == "complete":
+			return True
+		else:
+			return False
+
+	def wait_for_jquery(driver):
+		done = driver.execute_script("return jQuery.active")
+		if int(done) == 0:
+			return True
+		else:
+			return False
+	
+	#for when all else fails
+	def click_with_js(driver, element):
+		driver.execute_script("arguments[0].click();", element)
+		
 
 class Account(unittest.TestCase):
 	#login objects
@@ -33,7 +57,6 @@ class Account(unittest.TestCase):
 	obj_conf_passwd = "input#password-confirmation.input-text"
 	obj_create_button = "button.action.submit.primary"
 	obj_success_msg = "div.message-success.success.message"
-
 
 	#this runs before every class, so all tests in this class use the same
 	#browser session
@@ -70,6 +93,7 @@ class Account(unittest.TestCase):
 		self.driver.implicitly_wait(GlobalVariable.timeout)
 		self.driver.find_element_by_css_selector(self.obj_login_success)
 
+
 	def test_create_account(self):
 		#create unique username
 		unique_email = GlobalVariable.first_name + \
@@ -105,6 +129,7 @@ class Account(unittest.TestCase):
 		self.driver.implicitly_wait(GlobalVariable.timeout)
 		self.driver.find_element_by_css_selector(self.obj_success_msg)
 
+	
 	@classmethod
 	def tearDownClass(inst):
 		inst.driver.quit()
@@ -118,6 +143,14 @@ class Cart(unittest.TestCase):
 	obj_cart_empty = "div.cart-empty"
 	obj_minicart_count = "span.counter-number"
 	obj_proceed_checkout = "button.action.primary.checkout"
+	obj_promo_expand = "div#block-discount.block.discount"
+	obj_promo_input = "input#coupon_code.input-text"
+	obj_promo_button = "button.action.apply.primary"
+	obj_promo_err = "div.message-error.error.message"
+	obj_promo_success = "div.message-success.success.message"
+	obj_discount = "span.discount-coupon"
+	obj_ship_page = "li#shipping.checkout-shipping-address"
+	obj_subtotal = "tr.total.sub"
 
 	@classmethod
 	def setUpClass(inst):
@@ -125,9 +158,11 @@ class Cart(unittest.TestCase):
 		inst.driver.implicitly_wait(GlobalVariable.timeout)
 		inst.driver.maximize_window()
 
+
 	def setUp(self):
 		#self.driver.delete_all_cookies()
 		pass
+
 
 	def test_add_to_cart(self):
 		#navigate to test product page
@@ -145,6 +180,7 @@ class Cart(unittest.TestCase):
 		self.driver.implicitly_wait(GlobalVariable.timeout)
 		self.driver.find_element_by_css_selector(self.obj_add_success)
 
+
 	#TODO set cart via API and clear cookies between tests
 	def test_edit_cart_qty(self):
 		self.driver.get(GlobalVariable.cart_url)
@@ -161,6 +197,82 @@ class Cart(unittest.TestCase):
 		self.driver.implicitly_wait(GlobalVariable.timeout)
 		self.driver.find_element_by_css_selector(self.obj_proceed_checkout)
 
+	def test_proceed_to_checkout(self):
+		self.driver.get(GlobalVariable.cart_url)
+
+		#wait for cart to load fully
+		WebDriverWait(self.driver, GlobalVariable.timeout).until(
+			EC.visibility_of_element_located((By.CSS_SELECTOR, self.obj_minicart_count))
+		)
+
+		#wait for javascript and jquery to finish loading
+		elapsed = 0
+		while True:
+			if Utilities.wait_for_js(self.driver) and Utilities.wait_for_jquery(self.driver):
+				break
+			if elapsed > GlobalVariable.timeout:
+				raise TimeoutError
+			time.sleep(0.1)
+			elapsed += 0.1
+			
+		#click proceed to checkout button
+		proceed = self.driver.find_element_by_css_selector(self.obj_proceed_checkout)
+		Utilities.click_with_js(self.driver, proceed)
+
+		#verify shipping info visible
+		self.driver.implicitly_wait(GlobalVariable.timeout)
+		self.driver.find_element_by_css_selector(self.obj_ship_page)
+
+
+	def test_apply_invalid_promo_code(self):
+		self.driver.get(GlobalVariable.cart_url)
+
+		#wait for cart to load fully
+		WebDriverWait(self.driver, GlobalVariable.timeout).until(
+			EC.visibility_of_element_located((By.CSS_SELECTOR, self.obj_minicart_count))
+		)
+
+		#expand promo field
+		btn_expand_promo = self.driver.find_element_by_css_selector(self.obj_promo_expand)
+		btn_expand_promo.click()
+
+		#input invalid coupon code
+		input_coupon = self.driver.find_element_by_css_selector(self.obj_promo_input)
+		input_coupon.send_keys(GlobalVariable.coupon_invalid)
+
+		#click apply
+		btn_apply = self.driver.find_element_by_css_selector(self.obj_promo_button)
+		btn_apply.click()
+
+		#verify error present
+		self.driver.implicitly_wait(GlobalVariable.timeout)
+		self.driver.find_element_by_css_selector(self.obj_promo_err)
+
+	def test_apply_valid_promo_code(self):
+		self.driver.get(GlobalVariable.cart_url)
+
+		#wait for cart to load fully
+		WebDriverWait(self.driver, GlobalVariable.timeout).until(
+			EC.visibility_of_element_located((By.CSS_SELECTOR, self.obj_minicart_count))
+		)
+
+		#expand promo field
+		btn_expand_promo = self.driver.find_element_by_css_selector(self.obj_promo_expand)
+		btn_expand_promo.click()
+
+		#input valid coupon code
+		input_coupon = self.driver.find_element_by_css_selector(self.obj_promo_input)
+		input_coupon.send_keys(GlobalVariable.coupon_valid)
+
+		#click apply
+		btn_apply = self.driver.find_element_by_css_selector(self.obj_promo_button)
+		btn_apply.click()
+
+		#verify success msg present
+		self.driver.implicitly_wait(GlobalVariable.timeout)
+		self.driver.find_element_by_css_selector(self.obj_promo_success)
+
+	
 	def test_remove_from_cart(self):
 		self.driver.get(GlobalVariable.cart_url)
 
@@ -169,9 +281,6 @@ class Cart(unittest.TestCase):
 			EC.element_to_be_clickable((By.CSS_SELECTOR, self.obj_proceed_checkout))
 		)
 
-		#self.driver.implicitly_wait(GlobalVariable.timeout)
-		#self.driver.find_element_by_css_selector(self.proceed_checkout)
-
 		#click remove from cart button
 		btn_remove = self.driver.find_element_by_css_selector(self.obj_delete_cart)
 		btn_remove.click()
@@ -179,6 +288,7 @@ class Cart(unittest.TestCase):
 		#wait for remove success
 		self.driver.implicitly_wait(GlobalVariable.timeout)
 		self.driver.find_element_by_css_selector(self.obj_cart_empty)
+
 
 	@classmethod
 	def tearDownClass(inst):
