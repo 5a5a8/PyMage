@@ -6,12 +6,13 @@ library.
 This is mostly for me to experiment with Selenium and document some different
 ways of doing things.
 
-These tests run against a local web server running a default install of Magento
-Community Edition v2.4.2. At present the average time per test is around three
-seconds in this environment.
+These tests run against a local network  web server running a default install
+of Magento Community Edition v2.4.2. At present the average time per test is
+around three seconds in this environment.
 
 The currently implemented tests are:
 - Log In
+- Log Out
 - Create Account
 - Add to Cart
 - Edit Cart Quantity
@@ -19,6 +20,10 @@ The currently implemented tests are:
 - Apply an Invalid Coupon Code
 - Proceed from Cart to Checkout
 - Remove Product from Cart
+- Check Footer Links Column A
+- Check Footer Links Column B
+- Navigate to Login Page
+- Navigate to Create Account Page
 
 Over time I will add to the tests and improve test handling/execution as well
 as reporting of test results.
