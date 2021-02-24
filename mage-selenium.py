@@ -21,6 +21,7 @@ class GlobalVariable:
 	coupon_invalid = "invalidcoupon50"
 	coupon_valid = "AUTO_TEST_COUPON"
 	account_url = site_url + "customer/account"
+	changepass_url = account_url + "/edit/changepass/1/"
 
 
 class Utilities:
@@ -419,6 +420,47 @@ class Tests(unittest.TestCase):
 		btn_contact.click()
 		self.driver.implicitly_wait(GlobalVariable.timeout)
 		self.driver.find_element_by_css_selector(obj_not404_contact)
+
+	def test_change_password(self):
+		obj_currentpass = "input#current-password.input-text"
+		obj_newpass = "input#password.input-text"
+		obj_confpass = "input#password-confirmation.input-text"
+		obj_save_btn = "button.action.save.primary"
+		obj_signed_out = "button.action.login.primary"
+
+		oldpass = GlobalVariable.login_password
+		newpass = oldpass + "new"
+
+		#we change to new password, sign in with new, then revert back to old
+		for i in range(2):
+			self.test_login()
+			self.driver.get(GlobalVariable.changepass_url)
+
+			WebDriverWait(self.driver, GlobalVariable.timeout).until(
+				EC.visibility_of_element_located((By.CSS_SELECTOR, obj_currentpass))
+			)
+
+			#enter current password
+			cur_pass = self.driver.find_element_by_css_selector(obj_currentpass)
+			cur_pass.send_keys(oldpass)
+
+			#enter new password
+			new_pass = self.driver.find_element_by_css_selector(obj_newpass)
+			new_pass.send_keys(newpass)
+
+			#confirm new password
+			conf_pass = self.driver.find_element_by_css_selector(obj_confpass)
+			conf_pass.send_keys(newpass)
+
+			#click save and verify logged out
+			btn_save = self.driver.find_element_by_css_selector(obj_save_btn)
+			btn_save.click()
+			self.driver.implicitly_wait(GlobalVariable.timeout)
+			self.driver.find_element_by_css_selector(obj_signed_out)
+
+			#change global login password so that it now matches new password
+			GlobalVariable.login_password = newpass
+			oldpass, newpass = newpass, oldpass
 
 
 	@classmethod

@@ -8,11 +8,15 @@ ways of doing things.
 
 These tests run against a local network  web server running a default install
 of Magento Community Edition v2.4.2. At present the average time per test is
-around three seconds in this environment.
+around three to five seconds in this environment. Each test case is
+self-contained, meaning that any dependency on system state is set within the
+test case and does not depend on the result of any previous test - i.e. each
+test could be run individually.
 
 The currently implemented tests are:
 - Log In
 - Log Out
+- Change Password
 - Create Account
 - Add to Cart
 - Edit Cart Quantity
