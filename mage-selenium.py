@@ -63,6 +63,7 @@ class Tests(unittest.TestCase):
 	obj_proceed_checkout = "button.action.primary.checkout"
 	obj_minicart_count = "span.counter-number"
 	obj_err_msg = "div.message-error.error.message"
+	obj_success_msg = "div.message-success.success.message"
 
 
 	#this runs before every class, so all tests in this class use the same
@@ -86,9 +87,15 @@ class Tests(unittest.TestCase):
 		obj_login_success = "span.logged-in"
 		obj_dashboard = "div.block.block-dashboard-info"
 
+		passwd = GlobalVariable.login_password
+
 		#magento loves to give invalid form key errors on login
-		#if this happens, try again up to 3 times
+		#if this happens, try again 
 		for i in range(3):
+			#in case the changepass test case fails to revert the password
+			if i == 2:
+				passwd = passwd + "new"
+
 			#go to login url
 			self.driver.get(GlobalVariable.login_url)
 
@@ -98,7 +105,7 @@ class Tests(unittest.TestCase):
 
 			#input password
 			pass_input = self.driver.find_element_by_css_selector(obj_password_form)
-			pass_input.send_keys(GlobalVariable.login_password)
+			pass_input.send_keys(passwd)
 
 			#click login button
 			login_click = self.driver.find_element_by_css_selector(obj_login_button)
@@ -166,6 +173,10 @@ class Tests(unittest.TestCase):
 			#navigate to sign up page
 			self.driver.get(GlobalVariable.create_account_url)
 			
+			WebDriverWait(self.driver, GlobalVariable.timeout).until(
+				EC.visibility_of_element_located((By.CSS_SELECTOR, obj_first_name))
+			)
+
 			#input first and last names
 			self.driver.implicitly_wait(GlobalVariable.timeout)
 			input_fn = self.driver.find_element_by_css_selector(obj_first_name)
@@ -461,6 +472,32 @@ class Tests(unittest.TestCase):
 			#change global login password so that it now matches new password
 			GlobalVariable.login_password = newpass
 			oldpass, newpass = newpass, oldpass
+
+	def test_newsletter_subscribe(self):
+		obj_newsletter = "input#newsletter"
+		obj_submit = "button.action.subscribe.primary"
+		obj_pageload = "span.not-logged-in"
+
+		unique_email = GlobalVariable.first_name + \
+						GlobalVariable.last_name + \
+						str(time.time()) + \
+						"@protonmail.com"
+
+		self.driver.get(GlobalVariable.site_url)
+
+		WebDriverWait(self.driver, GlobalVariable.timeout).until(
+			EC.visibility_of_element_located((By.CSS_SELECTOR, obj_pageload))
+		)
+
+		#input email and submit
+		input_nl = self.driver.find_element_by_css_selector(obj_newsletter)
+		input_nl.send_keys(unique_email)
+		btn_submit = self.driver.find_element_by_css_selector(obj_submit)
+		btn_submit.click()
+
+		#check for success message
+		self.driver.implicitly_wait(GlobalVariable.timeout)
+		self.driver.find_element_by_css_selector(self.obj_success_msg)
 
 
 	@classmethod

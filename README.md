@@ -28,6 +28,7 @@ The currently implemented tests are:
 - Check Footer Links Column B
 - Navigate to Login Page
 - Navigate to Create Account Page
+- Sign up for Newsletter
 
 Over time I will add to the tests and improve test handling/execution as well
 as reporting of test results.
